@@ -27,10 +27,15 @@ def two_dim_graph_wave_more_waves(position):
 	for x in range(999):
 		h = 0
 		for y in range(12):
-			h -= math.e**math.sin(((x + (position * -(y % 2) * (30/(y+1)))) * y) / 300) * 30 / (y + 0.1)
+			h -= math.e**math.sin(((x + (position * -(y % 2) * (30/(y+1)))) * y) / 300) * 31 / (y + 0.1)
 
-		pixel_array[x][800 + int(h)] = (0, 0, 0)
-		pixel_array[x][0:800 + int(h)] = (85, 125, 195)
+		# pixel_array[x][800 + int(h)] = (0, 0, 0)
+		clamp = min(max(-h-300, 0), 255)
+		clamp2 = 255 - clamp
+
+		pixel_array[x][0:700 + int(h)] = (clamp2/3, clamp2/1.9, clamp2/1.4)
+		pixel_array[x][700 + int(h):600] = (clamp/3, clamp/1.9, clamp/1.4)
+
 	pixel_array.close()
 
 
