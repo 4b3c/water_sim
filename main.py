@@ -45,16 +45,26 @@ def two_dim_graph_wave_more_waves(position):
 
 def more_waves_with_derivative(position):
 	pixel_array = pygame.PixelArray(window)
+	# total_dh = 0
 	for x in range(1000):
 		h = 0
 		dh = 0
 		for y in range(1, 8):
-			c = math.e**math.sin(((1.2 * x + (position * direction_amount(y) * (30/(y+1))) ) * y) / 300) * 33 / (y + 0.1)
+			position_mod = position * direction_amount(y) * (30 / (y + 1))
+			x_mod = x * 1.2
+			y_mod = 33 / (y + 0.1)
+			c = math.e**math.sin((x_mod + position_mod) * (y / 300)) * y_mod
 			h -= c
-			dh -= c * y * y * math.cos(((1.2 * x + (position * direction_amount(y) * (30/(y+1)))) * y) / 300) * 33 / (y + 0.1)
+			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
 
-		derivative_clamp = min(max(dh / 50, -125), 100) + 155
+		derivative_clamp = min(max(dh / 60, -125), 100) + 155
 		pixel_array[x][250 + int(h):650 + int(h)] = (derivative_clamp*(35/255), derivative_clamp*(137/255), derivative_clamp*(218/255))
+
+
+		#failed to make it look like it had a fixed length
+		# total_dh += abs(dh / 10000)
+		# if total_dh >= 70:
+		# 	break
 
 
 
