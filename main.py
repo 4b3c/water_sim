@@ -1,4 +1,5 @@
-import pygame, math, numpy
+import pygame, math
+import numpy as np
 
 pygame.init()
 
@@ -66,6 +67,7 @@ def more_waves_with_derivative(position):
 		# total_dh += abs(dh / 10000)
 		# if total_dh >= 70:
 		# 	break
+	pixel_array.close()
 
 def vertical_banner(position):
 	pixel_array = pygame.PixelArray(window)
@@ -84,12 +86,52 @@ def vertical_banner(position):
 		derivative_clamp = min(max(dh / 60, -125), 100) + 155
 		pixel_array[250 + int(h):850 + int(h), x] = (derivative_clamp*(35/255), derivative_clamp*(137/255), derivative_clamp*(218/255))
 
+	pixel_array.close()
+
+def both_banner(position):
+	pixel_array = pygame.PixelArray(window)
+
+	for x in range(1000):
+		h = 0
+		dh = 0
+		for y in range(1, 8):
+			position_mod = position * direction_amount(y) * (30 / (y + 1))
+			x_mod = x * 1.2
+			y_mod = 33 / (y + 0.1)
+
+			c = math.e**math.sin((x_mod + position_mod) * (y / 300)) * y_mod
+			h -= c
+			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
+
+		derivative_clamp = min(max(dh / 60, -125), 100) + 155
+		pixel_array[x, 250 + int(h):650 + int(h)] = (derivative_clamp*(17/255), derivative_clamp*(68/255), derivative_clamp*(109/255))
+
+	for x in range(800):
+		h = 0
+		dh = 0
+		for y in range(1, 8):
+			position_mod = position * direction_amount(y) * (30 / (y + 1))
+			x_mod = x * 1.2
+			y_mod = 33 / (y + 0.1)
+	
+			c = math.e**math.sin((x_mod + position_mod) * (y / 300)) * y_mod
+			h -= c
+			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
+
+		derivative_clamp = min(max(dh / 60, -125), 100) + 155
+		# original_color = 250
+		pixel_array[250 + int(h):850 + int(h), x] = (derivative_clamp*(17/255), derivative_clamp*(68/255), derivative_clamp*(109/255))
+
+	pixel_array.close()
+
+
+	print("POggers")
 
 while running:
 	window.fill((15, 45, 95));
 
 	displacement += 0.3
-	vertical_banner(displacement)
+	both_banner(displacement)
 
 	pygame.display.update()
 	for event in pygame.event.get():
