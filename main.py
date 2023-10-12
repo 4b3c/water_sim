@@ -119,19 +119,17 @@ def both_banner(position):
 			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
 
 		derivative_clamp = min(max(dh / 60, -125), 100) + 155
-		# original_color = 250
 		pixel_array[250 + int(h):850 + int(h), x] = (derivative_clamp*(17/255), derivative_clamp*(68/255), derivative_clamp*(109/255))
 
 	pixel_array.close()
 
 
-	print("POggers")
 
 while running:
 	window.fill((15, 45, 95));
 
 	displacement += 0.3
-	both_banner(displacement)
+	more_waves_with_derivative(displacement)
 
 	pygame.display.update()
 	for event in pygame.event.get():
