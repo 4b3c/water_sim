@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import pygame
+import random
 
 pygame.init()
 
@@ -24,9 +25,10 @@ def rotate_rect(size, angle_degrees):
 	new_width = -rotate_point((-right, top), angle_degrees)[0] * 2
 	new_height = rotate_point((right, top), angle_degrees)[1] * 2
 
-	return (int(new_width), int(new_height))
+	return (round(new_width / 10) * 10, round(new_height / 10) * 10)
 
-# Frequency = cycles per second, make it inversly proportional to height so shorter waves = closer together
+
+
 class wave:
 	def __init__(self, angle, output_size, height, count):
 		self.angle = angle
@@ -38,28 +40,35 @@ class wave:
 		self.rotation_matrix = cv2.getRotationMatrix2D((self.size[0] / 2, self.size[1] / 2), angle, 1)
 
 	def generate_wave(self, position):
-		self.image = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
+		self.deriv_array = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
 		for col in range(self.size[1]):
 			col_input = (col * self.freq) + position
 			grey_val = ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height
-			self.image[col, 0:self.size[0]] = (grey_val*(35/255), grey_val*(139/255), grey_val*(209/255))
+			self.deriv_array[col, 0:self.size[0]] = (grey_val*(35/255), grey_val*(139/255), grey_val*(209/255))
 
-		# Rotate then crop the image
-		self.image = cv2.warpAffine(self.image, self.rotation_matrix, self.size)
-		self.image = self.image[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
+		# Rotate, crop then transpose from (h, w, d) to (w, h, d)
+		self.deriv_array = cv2.warpAffine(self.deriv_array, self.rotation_matrix, self.size)
+		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
+		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
+		
 
-	def show_wave(self, window):
-		image_surface = pygame.surfarray.make_surface(self.image.transpose(1, 0, 2))
-		window.blit(image_surface, (100, 100))
+waves = [wave(random.randint(10, 50), (800, 600), 100, random.randint(5, 10)) for _ in range(5)]
 
-wave = wave(26, (800, 600), 100, 15)
+# wave = wave(66, (800, 600), 100, 15)
 
 while running:
 	window.fill((15, 45, 95));
 
-	displacement += 0.03
-	wave.generate_wave(displacement)
-	wave.show_wave(window)
+	displacement += 0.07
+
+	deriv_arrays = np.zeros((800, 600, 3), dtype=np.uint8)
+	for wave in waves:
+		wave.generate_wave(displacement)
+		deriv_arrays += wave.deriv_array
+
+	# wave.generate_wave(displacement)
+	image = pygame.surfarray.make_surface(deriv_arrays)
+	window.blit(image, (100, 100))
 
 	pygame.display.update()
 	for event in pygame.event.get():
