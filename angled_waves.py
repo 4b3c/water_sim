@@ -1,75 +1,53 @@
-import pygame, math
 import numpy as np
+import cv2
 
-# pygame.init()
-
-# window = pygame.display.set_mode((1000, 800))
-# running = True
-# displacement = 0
-
-def direction_amount(x):
-	if x % 3 == 0:
-		return -1
-	else:
-		return x % 2
-
-def more_waves_with_derivative(position):
-	pixel_array = np.zeros((800, 400, 3))
-	for x in range(800):
-		h = 0
-		dh = 0
-		for y in range(1, 8):
-			position_mod = position * direction_amount(y) * (30 / (y + 1))
-			x_mod = x * 1.2
-			y_mod = 33 / (y + 0.1)
-
-			c = math.e**math.sin((x_mod + position_mod) * (y / 300)) * y_mod
-			h -= c
-			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
-
-		derivative_clamp = min(max(dh / 60, -125), 100) + 155
-		pixel_array[x, 250 + int(h / 5):650 + int(h / 5)] = [derivative_clamp*(35/255), derivative_clamp*(137/255), derivative_clamp*(218/255)]
-
-
-def rotate_point(x, y, angle_degrees):
-	angle_radians = (angle_degrees * math.pi) / 180
-	new_x = x * math.cos(angle_radians) - y * math.sin(angle_radians)
-	new_y = x * math.sin(angle_radians) + y * math.cos(angle_radians)
+# Assumes rotation around the origin
+def rotate_point(point, angle_degrees):
+	angle_radians = (angle_degrees * np.pi) / 180
+	new_x = point[0] * np.cos(angle_radians) - point[1] * np.sin(angle_radians)
+	new_y = point[0] * np.sin(angle_radians) + point[1] * np.cos(angle_radians)
 
 	return (new_x, new_y)
 
-def new_dimensions(width, height, angle_degrees):
-	right = width / 2
-	left = -width / 2
-	top = height / 2
+# Assumes rotation around the center of a given rectangle
+def rotate_rect(size, angle_degrees):
+	right = size[0] / 2
+	top = size[1] / 2
 
-	_, new_top = rotate_point(right, top, angle_degrees)
-	new_left, _ = rotate_point(left, top, angle_degrees)
+	new_width = -rotate_point((-right, top), angle_degrees)[0] * 2
+	new_height = rotate_point((right, top), angle_degrees)[1] * 2
 
-	print(new_top, new_left)
+	return (int(new_width), int(new_height))
 
-	new_height = new_top * 2
-	new_width = abs(new_left) * 2
-
-	return (new_width, new_height)
-
-
-
+# Frequency = cycles per second, make it inversly proportional to height so shorter waves = closer together
 class wave:
-	def __init__(self, angle, end_size, height):
+	def __init__(self, angle, output_size, height):
 		self.angle = angle
-		self.size = 1
+		self.size = rotate_rect(output_size, angle)
+		self.crop_x = (self.size[0] - output_size[0]) // 2
+		self.crop_y = (self.size[1] - output_size[1]) // 2
+		self.height = height
+		self.freq = 0.1 / height
+		self.rotation_matrix = cv2.getRotationMatrix2D((self.size[0] / 2, self.size[1] / 2), angle, 1)
 
-# while running:
-# 	window.fill((15, 45, 95));
+	def generate_wave(self, position):
+		self.image = np.zeros((self.size[1], self.size[0], 3))
+		for col in range(self.size[1]):
+			col_input = (col * self.freq) + position
+			grey_val = np.cos(col_input) * np.e**np.sin(col_input) * self.height
+			self.image[col, 0:self.size[0]] = (225, grey_val*(139/255), grey_val*(35/255))
 
-# 	displacement += 0.3
-# 	more_waves_with_derivative(displacement)
+		# Rotate then crop the image
+		self.image = cv2.warpAffine(self.image, self.rotation_matrix, self.size)
+		self.image = self.image[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
 
-# 	pygame.display.update()
-# 	for event in pygame.event.get():
-# 		if event.type == pygame.QUIT:
-# 			quit()
+	def show_wave(self):
+		cv2.imshow('Image', self.image)
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
 
+wave = wave(10, (700, 400), 3)
 
-print(new_dimensions(13, 6, 24))
+wave.generate_wave(0)
+
+wave.show_wave()
