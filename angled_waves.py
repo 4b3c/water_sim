@@ -1,5 +1,12 @@
 import numpy as np
 import cv2
+import pygame
+
+pygame.init()
+
+window = pygame.display.set_mode((1000, 800))
+running = True
+displacement = 0
 
 # Assumes rotation around the origin
 def rotate_point(point, angle_degrees):
@@ -21,33 +28,40 @@ def rotate_rect(size, angle_degrees):
 
 # Frequency = cycles per second, make it inversly proportional to height so shorter waves = closer together
 class wave:
-	def __init__(self, angle, output_size, height):
+	def __init__(self, angle, output_size, height, count):
 		self.angle = angle
 		self.size = rotate_rect(output_size, angle)
 		self.crop_x = (self.size[0] - output_size[0]) // 2
 		self.crop_y = (self.size[1] - output_size[1]) // 2
 		self.height = height
-		self.freq = 0.1 / height
+		self.freq = 0.01 * count
 		self.rotation_matrix = cv2.getRotationMatrix2D((self.size[0] / 2, self.size[1] / 2), angle, 1)
 
 	def generate_wave(self, position):
-		self.image = np.zeros((self.size[1], self.size[0], 3))
+		self.image = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
 		for col in range(self.size[1]):
 			col_input = (col * self.freq) + position
-			grey_val = np.cos(col_input) * np.e**np.sin(col_input) * self.height
-			self.image[col, 0:self.size[0]] = (225, grey_val*(139/255), grey_val*(35/255))
+			grey_val = ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height
+			self.image[col, 0:self.size[0]] = (grey_val*(35/255), grey_val*(139/255), grey_val*(209/255))
 
 		# Rotate then crop the image
 		self.image = cv2.warpAffine(self.image, self.rotation_matrix, self.size)
 		self.image = self.image[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
 
-	def show_wave(self):
-		cv2.imshow('Image', self.image)
-		cv2.waitKey(0)
-		cv2.destroyAllWindows()
+	def show_wave(self, window):
+		image_surface = pygame.surfarray.make_surface(self.image.transpose(1, 0, 2))
+		window.blit(image_surface, (100, 100))
 
-wave = wave(10, (700, 400), 3)
+wave = wave(26, (800, 600), 100, 15)
 
-wave.generate_wave(0)
+while running:
+	window.fill((15, 45, 95));
 
-wave.show_wave()
+	displacement += 0.03
+	wave.generate_wave(displacement)
+	wave.show_wave(window)
+
+	pygame.display.update()
+	for event in pygame.event.get():
+		if event.type == pygame.QUIT:
+			quit()
