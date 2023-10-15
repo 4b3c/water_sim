@@ -30,7 +30,6 @@ def rotate_rect(size, angle_degrees):
 		new_width = max(abs(rotate_point((right, top), angle_degrees)[0] * 2), size[0])
 		new_height = max(abs(rotate_point((right, -top), angle_degrees)[1] * 2), size[1])
 
-	print(quadrant, new_width, new_height)
 	return (round(new_width / 10) * 10, round(new_height / 10) * 10)
 
 
@@ -49,35 +48,31 @@ class wave:
 		self.deriv_array = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
 		for col in range(self.size[1]):
 			col_input = (col * self.freq) + position
-			grey_val = ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height
-			self.deriv_array[col, 0:self.size[0]] = (grey_val*(35/255), grey_val*(139/255), grey_val*(209/255))
+			grey_val = min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height)
+			self.deriv_array[col, 0:self.size[0]] = (grey_val * 0.1, grey_val * 0.3, grey_val * 1.0)
 
 		# Rotate, crop then transpose from (h, w, d) to (w, h, d)
 		self.deriv_array = cv2.warpAffine(self.deriv_array, self.rotation_matrix, self.size)
 		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
 		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
-		# print(self.deriv_array.shape)
 
-# waves = [wave(random.randint(10, 80), (800, 600), 100, random.randint(5, 25)) for _ in range(5)]
+waves = [wave(random.randint(0, 360), (800, 600), random.randint(100, 100), random.randint(5, 15)) for _ in range(1)]
 
-wave = wave(67, (800, 600), 100, 15)
 
 while running:
 	window.fill((15, 45, 95));
 
 	displacement += 0.07
 
-	# deriv_arrays = np.zeros((800, 600, 3), dtype=np.uint8)
-	# for wave in waves:
-	# 	wave.generate_wave(displacement)
-	# 	deriv_arrays += wave.deriv_array
+	deriv_arrays = np.zeros((800, 600, 3), dtype=np.uint8)
+	for wave in waves:
+		wave.generate_wave(displacement)
+		deriv_arrays += wave.deriv_array
 
-	wave.generate_wave(displacement)
-	image = pygame.surfarray.make_surface(wave.deriv_array)
-	# image = pygame.surfarray.make_surface(deriv_arrays)
+	image = pygame.surfarray.make_surface(deriv_arrays)
 	window.blit(image, (100, 100))
 
 	pygame.display.update()
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
-			quit()
+			running = False
