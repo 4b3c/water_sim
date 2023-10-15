@@ -19,12 +19,18 @@ def rotate_point(point, angle_degrees):
 
 # Assumes rotation around the center of a given rectangle
 def rotate_rect(size, angle_degrees):
+	quadrant = (angle_degrees // 90) + 1
 	right = size[0] / 2
 	top = size[1] / 2
 
-	new_width = -rotate_point((-right, top), angle_degrees)[0] * 2
-	new_height = rotate_point((right, top), angle_degrees)[1] * 2
+	if quadrant == 1 or quadrant == 3:
+		new_width = max(abs(rotate_point((-right, top), angle_degrees)[0] * 2), size[0])
+		new_height = max(abs(rotate_point((right, top), angle_degrees)[1] * 2), size[1])
+	else:
+		new_width = max(abs(rotate_point((right, top), angle_degrees)[0] * 2), size[0])
+		new_height = max(abs(rotate_point((right, -top), angle_degrees)[1] * 2), size[1])
 
+	print(quadrant, new_width, new_height)
 	return (round(new_width / 10) * 10, round(new_height / 10) * 10)
 
 
@@ -33,8 +39,8 @@ class wave:
 	def __init__(self, angle, output_size, height, count):
 		self.angle = angle
 		self.size = rotate_rect(output_size, angle)
-		self.crop_x = (self.size[0] - output_size[0]) // 2
-		self.crop_y = (self.size[1] - output_size[1]) // 2
+		self.crop_x = abs(self.size[0] - output_size[0]) // 2
+		self.crop_y = abs(self.size[1] - output_size[1]) // 2
 		self.height = height
 		self.freq = 0.01 * count
 		self.rotation_matrix = cv2.getRotationMatrix2D((self.size[0] / 2, self.size[1] / 2), angle, 1)
@@ -50,24 +56,25 @@ class wave:
 		self.deriv_array = cv2.warpAffine(self.deriv_array, self.rotation_matrix, self.size)
 		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
 		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
-		
+		# print(self.deriv_array.shape)
 
-waves = [wave(random.randint(10, 50), (800, 600), 100, random.randint(5, 10)) for _ in range(5)]
+# waves = [wave(random.randint(10, 80), (800, 600), 100, random.randint(5, 25)) for _ in range(5)]
 
-# wave = wave(66, (800, 600), 100, 15)
+wave = wave(67, (800, 600), 100, 15)
 
 while running:
 	window.fill((15, 45, 95));
 
 	displacement += 0.07
 
-	deriv_arrays = np.zeros((800, 600, 3), dtype=np.uint8)
-	for wave in waves:
-		wave.generate_wave(displacement)
-		deriv_arrays += wave.deriv_array
+	# deriv_arrays = np.zeros((800, 600, 3), dtype=np.uint8)
+	# for wave in waves:
+	# 	wave.generate_wave(displacement)
+	# 	deriv_arrays += wave.deriv_array
 
-	# wave.generate_wave(displacement)
-	image = pygame.surfarray.make_surface(deriv_arrays)
+	wave.generate_wave(displacement)
+	image = pygame.surfarray.make_surface(wave.deriv_array)
+	# image = pygame.surfarray.make_surface(deriv_arrays)
 	window.blit(image, (100, 100))
 
 	pygame.display.update()

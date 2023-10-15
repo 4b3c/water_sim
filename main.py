@@ -129,7 +129,7 @@ while running:
 	window.fill((15, 45, 95));
 
 	displacement += 0.3
-	more_waves_with_derivative(displacement)
+	vertical_banner(displacement)
 
 	pygame.display.update()
 	for event in pygame.event.get():
