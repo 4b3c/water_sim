@@ -1,137 +1,90 @@
-import pygame, math
 import numpy as np
+import cv2
+import pygame
+import random
 
 pygame.init()
 
 window = pygame.display.set_mode((1000, 800))
 running = True
 displacement = 0
+images = []
 
-def direction_amount(x):
-	if x % 3 == 0:
-		return -1
+# Assumes rotation around the origin
+def rotate_point(point, angle_degrees):
+	angle_radians = (angle_degrees * np.pi) / 180
+	new_x = point[0] * np.cos(angle_radians) - point[1] * np.sin(angle_radians)
+	new_y = point[0] * np.sin(angle_radians) + point[1] * np.cos(angle_radians)
+
+	return (new_x, new_y)
+
+# Assumes rotation around the center of a given rectangle
+def rotate_rect(size, angle_degrees):
+	quadrant = (angle_degrees // 90) + 1
+	right = size[0] / 2
+	top = size[1] / 2
+
+	if quadrant == 1 or quadrant == 3:
+		new_width = max(abs(rotate_point((-right, top), angle_degrees)[0] * 2), size[0])
+		new_height = max(abs(rotate_point((right, top), angle_degrees)[1] * 2), size[1])
 	else:
-		return x % 2
+		new_width = max(abs(rotate_point((right, top), angle_degrees)[0] * 2), size[0])
+		new_height = max(abs(rotate_point((right, -top), angle_degrees)[1] * 2), size[1])
 
-def two_dim_graph_wave(position):
-	pixel_array = pygame.PixelArray(window)
-	for x in range(1000):
-		h = int(math.e**math.sin((x + position) / 100) * 30)
-		h -= int(math.e**math.sin((x - (position * 2 / 7)) / 30) * 10)
-		pixel_array[x, 400 - h] = (0, 0, 0)
-	pixel_array.close()
-
-def two_dim_flat_graph_wave(position):
-	pixel_array = pygame.PixelArray(window)
-	for x in range(1000):
-		h = int(math.e**math.sin((x + position) / 100) * 30)
-		h -= int(math.e**math.sin((x - (position * 2 / 7)) / 30) * 10)
-		pixel_array[x, 0:800] = (h + 100, h + 100, h + 100)
-	pixel_array.close()
-
-def two_dim_graph_wave_more_waves(position):
-	pixel_array = pygame.PixelArray(window)
-	for x in range(1000):
-		h = 0
-		for y in range(1, 12):
-			h -= math.e**math.sin(((x + (position * direction_amount(y) * (30/(y+1)))) * y) / 300) * 31 / (y + 0.1)
-
-		clamp = min(max(-h, 0), 255)
-		clamp2 = 255 - clamp
-
-		pixel_array[x, 0:400 + int(h)] = (clamp2/3, clamp2/1.9, clamp2/1.4)
-		pixel_array[x, 400 + int(h):800] = (clamp/3, clamp/1.9, clamp/1.4)
-
-	pixel_array.close()
-
-def more_waves_with_derivative(position):
-	pixel_array = pygame.PixelArray(window)
-	# total_dh = 0
-	for x in range(1000):
-		h = 0
-		dh = 0
-		for y in range(1, 8):
-			position_mod = position * direction_amount(y) * (30 / (y + 1))
-			x_mod = x * 1.2
-			y_mod = 33 / (y + 0.1)
-
-			c = math.e**math.sin((x_mod + position_mod) * (y / 300)) * y_mod
-			h -= c
-			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
-
-		derivative_clamp = min(max(dh / 60, -125), 100) + 155
-		pixel_array[x, 250 + int(h):650 + int(h)] = (derivative_clamp*(35/255), derivative_clamp*(137/255), derivative_clamp*(218/255))
+	return (round(new_width / 10) * 10, round(new_height / 10) * 10)
 
 
-		#failed to make it look like it had a fixed length
-		# total_dh += abs(dh / 10000)
-		# if total_dh >= 70:
-		# 	break
-	pixel_array.close()
 
-def vertical_banner(position):
-	pixel_array = pygame.PixelArray(window)
-	for x in range(800):
-		h = 0
-		dh = 0
-		for y in range(1, 8):
-			position_mod = position * direction_amount(y) * (30 / (y + 1))
-			x_mod = x * 1.2
-			y_mod = 33 / (y + 0.1)
-	
-			c = math.e**math.sin((x_mod + position_mod) * (y / 300)) * y_mod
-			h -= c
-			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
+class wave:
+	def __init__(self, angle, output_size, height, count):
+		self.angle = angle
+		self.size = rotate_rect(output_size, angle)
+		self.crop_x = abs(self.size[0] - output_size[0]) // 2
+		self.crop_y = abs(self.size[1] - output_size[1]) // 2
+		self.height = height
+		self.freq = 0.01 * count
+		self.rotation_matrix = cv2.getRotationMatrix2D((self.size[0] / 2, self.size[1] / 2), angle, 1)
 
-		derivative_clamp = min(max(dh / 60, -125), 100) + 155
-		pixel_array[250 + int(h):850 + int(h), x] = (derivative_clamp*(35/255), derivative_clamp*(137/255), derivative_clamp*(218/255))
+	def generate_wave(self, position):
+		self.deriv_array = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
+		for col in range(self.size[1]):
+			col_input = (col * self.freq) + position
+			grey_val = min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height)
+			self.deriv_array[col, 0:self.size[0]] = (grey_val, grey_val, grey_val)
 
-	pixel_array.close()
+		# Rotate, crop then transpose from (h, w, d) to (w, h, d)
+		self.deriv_array = cv2.warpAffine(self.deriv_array, self.rotation_matrix, self.size)
+		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
+		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
 
-def both_banner(position):
-	pixel_array = pygame.PixelArray(window)
-
-	for x in range(1000):
-		h = 0
-		dh = 0
-		for y in range(1, 8):
-			position_mod = position * direction_amount(y) * (30 / (y + 1))
-			x_mod = x * 1.2
-			y_mod = 33 / (y + 0.1)
-
-			c = math.e**math.sin((x_mod + position_mod) * (y / 300)) * y_mod
-			h -= c
-			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
-
-		derivative_clamp = min(max(dh / 60, -125), 100) + 155
-		pixel_array[x, 250 + int(h):650 + int(h)] = (derivative_clamp*(17/255), derivative_clamp*(68/255), derivative_clamp*(109/255))
-
-	for x in range(800):
-		h = 0
-		dh = 0
-		for y in range(1, 8):
-			position_mod = position * direction_amount(y) * (30 / (y + 1))
-			x_mod = x * 1.2
-			y_mod = 33 / (y + 0.1)
-	
-			c = math.e**math.sin((x_mod + position_mod) * (y / 300)) * y_mod
-			h -= c
-			dh -= c * y * y * math.cos((x_mod + position_mod) * (y / 300)) * y_mod
-
-		derivative_clamp = min(max(dh / 60, -125), 100) + 155
-		pixel_array[250 + int(h):850 + int(h), x] = (derivative_clamp*(17/255), derivative_clamp*(68/255), derivative_clamp*(109/255))
-
-	pixel_array.close()
-
+waves = [wave(random.randint(0, 360), (800, 600), random.randint(100, 100), random.randint(5, 15)) for _ in range(3)]
 
 
 while running:
 	window.fill((15, 45, 95));
 
-	displacement += 0.3
-	vertical_banner(displacement)
+	displacement += 0.07
+
+	deriv_arrays = np.zeros((800, 600, 3), dtype=np.uint8)
+	for wave in waves:
+		wave.generate_wave(displacement)
+		deriv_arrays += wave.deriv_array
+
+	deriv_arrays *= np.full((800, 600, 3), np.array([1.0, 0.8, 0.6]), dtype=np.uint8)
+	image = pygame.surfarray.make_surface(deriv_arrays)
+	images.append(deriv_arrays)
+	window.blit(image, (100, 100))
 
 	pygame.display.update()
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
-			quit()
+			running = False
+
+
+
+video_writer = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 25, (images[0].shape[1], images[0].shape[0]))
+
+for image in images:
+    video_writer.write(image)
+
+video_writer.release()
