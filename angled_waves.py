@@ -8,6 +8,7 @@ pygame.init()
 window = pygame.display.set_mode((1000, 800))
 running = True
 displacement = 0
+images = []
 
 # Assumes rotation around the origin
 def rotate_point(point, angle_degrees):
@@ -56,7 +57,7 @@ class wave:
 		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
 		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
 
-waves = [wave(random.randint(0, 360), (800, 600), random.randint(100, 100), random.randint(5, 15)) for _ in range(1)]
+waves = [wave(random.randint(0, 360), (800, 600), random.randint(100, 100), random.randint(5, 15)) for _ in range(3)]
 
 
 while running:
@@ -70,9 +71,22 @@ while running:
 		deriv_arrays += wave.deriv_array
 
 	image = pygame.surfarray.make_surface(deriv_arrays)
+	images.append(deriv_arrays)
 	window.blit(image, (100, 100))
 
 	pygame.display.update()
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			running = False
+
+
+
+# Create a VideoWriter object.
+video_writer = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 25, (images[0].shape[1], images[0].shape[0]))
+
+# Write the images to the VideoWriter object.
+for image in images:
+    video_writer.write(image)
+
+# Close the VideoWriter object.
+video_writer.release()
