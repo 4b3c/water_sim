@@ -50,14 +50,14 @@ class wave:
 		for col in range(self.size[1]):
 			col_input = (col * self.freq) + position
 			grey_val = min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height)
-			self.deriv_array[col, 0:self.size[0]] = (grey_val, grey_val, grey_val)
+			self.deriv_array[col, 0:self.size[0]] = (grey_val * 0.4, grey_val * 0.6, grey_val * 0.1)
 
 		# Rotate, crop then transpose from (h, w, d) to (w, h, d)
 		self.deriv_array = cv2.warpAffine(self.deriv_array, self.rotation_matrix, self.size)
 		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
 		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
 
-waves = [wave(random.randint(0, 360), (800, 600), random.randint(100, 100), random.randint(5, 15)) for _ in range(3)]
+waves = [wave(random.randint(0, 360), (800, 600), random.randint(10, 300), random.randint(1, 4)) for _ in range(5)]
 
 
 while running:
@@ -70,9 +70,9 @@ while running:
 		wave.generate_wave(displacement)
 		deriv_arrays += wave.deriv_array
 
-	deriv_arrays *= np.full((800, 600, 3), np.array([1.0, 0.8, 0.6]), dtype=np.uint8)
+	# deriv_arrays *= np.full((800, 600, 3), np.array([1.0, 0.8, 0.6]), dtype=np.uint8)
 	image = pygame.surfarray.make_surface(deriv_arrays)
-	images.append(deriv_arrays)
+	images.append(cv2.cvtColor(deriv_arrays, cv2.COLOR_BGR2RGB))
 	window.blit(image, (100, 100))
 
 	pygame.display.update()
