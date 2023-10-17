@@ -39,7 +39,7 @@ def rotate_rect(size, angle_degrees):
 
 
 class wave:
-	def __init__(self, angle, output_size, height, count):
+	def __init__(self, angle, output_size, height, count, color):
 		self.angle = angle
 		self.size = rotate_rect(output_size, angle)
 		self.crop_x = abs(self.size[0] - output_size[0]) // 2
@@ -47,21 +47,26 @@ class wave:
 		self.height = height
 		self.freq = 0.01 * count
 		self.rotation_matrix = cv2.getRotationMatrix2D((self.size[0] / 2, self.size[1] / 2), angle, 1)
+		self.color = color
 
 	def generate_wave(self, position):
 		self.deriv_array = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
 		for col in range(self.size[1]):
 			col_input = (col * self.freq) + position
 			grey_val = max(0, min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height))
-			self.deriv_array[col, 0:self.size[0]] = (grey_val * 0.2, grey_val * 0.2, grey_val * 0.8)
+			self.deriv_array[col, 0:self.size[0]] = np.full((3), grey_val, dtype=np.uint8) * self.color
 
 		# Rotate, crop then transpose from (h, w, d) to (w, h, d)
 		self.deriv_array = cv2.warpAffine(self.deriv_array, self.rotation_matrix, self.size)
 		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
 		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
 
-waves = [wave(random.randint(0, 360), (800, 600), random.randint(10, 80), random.randint(1, 6)) for _ in range(10)]
-
+waves = [wave(random.randint(0, 360), (800, 600), random.randint(10, 150), random.randint(1, 10), np.random.rand((3))) for _ in range(5)]
+# waves = [wave(12, (800, 600), 90, 3, c),
+# 		 wave(89, (800, 600), 90, 5, np.array([0.3, 0.2, 0.1])),
+# 		 wave(236, (800, 600), 90, 2, np.array([0.5, 0.1, 0.9])),
+# 		 wave(32, (800, 600), 90, 7, np.array([0.7, 0.2, 1.0]))
+# 		]
 
 while running:
 	window.fill((15, 45, 95));
@@ -74,7 +79,7 @@ while running:
 		deriv_arrays += wave.deriv_array
 
 	image = pygame.surfarray.make_surface(deriv_arrays)
-	images.append(deriv_arrays)
+	images.append(cv2.cvtColor(deriv_arrays, cv2.COLOR_BGR2RGB))
 	window.blit(image, (100, 100))
 
 	pygame.display.update()
@@ -83,15 +88,9 @@ while running:
 			running = False
 
 
-
-# Create a VideoWriter object.
 video_writer = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 25, (images[0].shape[1], images[0].shape[0]))
 
-# Write the images to the VideoWriter object.
 for image in images:
-    video_writer.write(image)
+	video_writer.write(image)
 
-# Close the VideoWriter object.
 video_writer.release()
-
-# cv2.imwrite("image.png", images[0])
