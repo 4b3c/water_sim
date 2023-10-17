@@ -4,6 +4,9 @@ import pygame
 import random
 
 pygame.init()
+seed = random.randint(1, 10000000)
+print(seed)
+random.seed(seed)
 
 window = pygame.display.set_mode((1000, 800))
 running = True
@@ -49,15 +52,15 @@ class wave:
 		self.deriv_array = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
 		for col in range(self.size[1]):
 			col_input = (col * self.freq) + position
-			grey_val = min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height)
-			self.deriv_array[col, 0:self.size[0]] = (grey_val * 0.1, grey_val * 0.3, grey_val * 1.0)
+			grey_val = max(0, min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height))
+			self.deriv_array[col, 0:self.size[0]] = (grey_val * 0.2, grey_val * 0.2, grey_val * 0.8)
 
 		# Rotate, crop then transpose from (h, w, d) to (w, h, d)
 		self.deriv_array = cv2.warpAffine(self.deriv_array, self.rotation_matrix, self.size)
 		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
 		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
 
-waves = [wave(random.randint(0, 360), (800, 600), random.randint(100, 100), random.randint(5, 15)) for _ in range(3)]
+waves = [wave(random.randint(0, 360), (800, 600), random.randint(10, 80), random.randint(1, 6)) for _ in range(10)]
 
 
 while running:
@@ -90,3 +93,5 @@ for image in images:
 
 # Close the VideoWriter object.
 video_writer.release()
+
+# cv2.imwrite("image.png", images[0])
