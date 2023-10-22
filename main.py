@@ -1,80 +1,40 @@
 import numpy as np
+import angled_waves as aw
 import cv2
 import pygame
 import random
 
 pygame.init()
+clock = pygame.time.Clock()
+
+# seed = random.randint(1, 10000000)
+# print(seed)
+# random.seed(seed)
 
 window = pygame.display.set_mode((1000, 800))
+wave_window = (800, 600)
 running = True
 displacement = 0
 images = []
 
-# Assumes rotation around the origin
-def rotate_point(point, angle_degrees):
-	angle_radians = (angle_degrees * np.pi) / 180
-	new_x = point[0] * np.cos(angle_radians) - point[1] * np.sin(angle_radians)
-	new_y = point[0] * np.sin(angle_radians) + point[1] * np.cos(angle_radians)
 
-	return (new_x, new_y)
-
-# Assumes rotation around the center of a given rectangle
-def rotate_rect(size, angle_degrees):
-	quadrant = (angle_degrees // 90) + 1
-	right = size[0] / 2
-	top = size[1] / 2
-
-	if quadrant == 1 or quadrant == 3:
-		new_width = max(abs(rotate_point((-right, top), angle_degrees)[0] * 2), size[0])
-		new_height = max(abs(rotate_point((right, top), angle_degrees)[1] * 2), size[1])
-	else:
-		new_width = max(abs(rotate_point((right, top), angle_degrees)[0] * 2), size[0])
-		new_height = max(abs(rotate_point((right, -top), angle_degrees)[1] * 2), size[1])
-
-	return (round(new_width / 10) * 10, round(new_height / 10) * 10)
-
-
-
-class wave:
-	def __init__(self, angle, output_size, height, count):
-		self.angle = angle
-		self.size = rotate_rect(output_size, angle)
-		self.crop_x = abs(self.size[0] - output_size[0]) // 2
-		self.crop_y = abs(self.size[1] - output_size[1]) // 2
-		self.height = height
-		self.freq = 0.01 * count
-		self.rotation_matrix = cv2.getRotationMatrix2D((self.size[0] / 2, self.size[1] / 2), angle, 1)
-
-	def generate_wave(self, position):
-		self.deriv_array = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
-		for col in range(self.size[1]):
-			col_input = (col * self.freq) + position
-			grey_val = min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height)
-			self.deriv_array[col, 0:self.size[0]] = (grey_val * 0.2, grey_val * 0.6, grey_val * 0.8)
-
-		# Rotate, crop then transpose from (h, w, d) to (w, h, d)
-		self.deriv_array = cv2.warpAffine(self.deriv_array, self.rotation_matrix, self.size)
-		self.deriv_array = self.deriv_array[self.crop_y:self.size[1] - self.crop_y, self.crop_x:self.size[0] - self.crop_x]
-		self.deriv_array = self.deriv_array.transpose(1, 0, 2)
-
-# waves = [wave(random.randint(0, 360), (800, 600), random.randint(10, 50), random.randint(1, 6)) for _ in range(4)]
-waves = [wave(45, (800, 600), 50, 15),
-		 wave(90, (800, 600), 40, 5),
-		 wave(135, (800, 600), 30, 15),
-		 wave(180, (800, 600), 20, 5)
-		]
+waves = [aw.wave(random.randint(0, 360), (800, 600), random.randint(10, 150), random.randint(1, 10), np.array([0.4, 0.9, 0.1])) for _ in range(5)]
+# waves = [aw.wave(12, wave_window, 90, 3, np.array([0.4, 0.9, 0.1])),
+# 		 aw.wave(89, wave_window, 90, 5, np.array([0.3, 0.2, 0.1])),
+# 		 aw.wave(236, wave_window, 90, 2, np.array([0.5, 0.1, 0.9])),
+# 		 aw.wave(32, wave_window, 90, 7, np.array([0.7, 0.2, 1.0]))
+# 		]
 
 while running:
 	window.fill((15, 45, 95));
 
 	displacement += 0.07
 
-	deriv_arrays = np.zeros((800, 600, 3), dtype=np.uint8)
+	deriv_arrays = np.zeros((wave_window[0], wave_window[1], 3), dtype=np.uint8)
 	for wave in waves:
 		wave.generate_wave(displacement)
 		deriv_arrays += wave.deriv_array
 
-	# deriv_arrays *= np.full((800, 600, 3), np.array([1.0, 0.8, 0.6]), dtype=np.uint8)
 	image = pygame.surfarray.make_surface(deriv_arrays)
 	images.append(cv2.cvtColor(deriv_arrays, cv2.COLOR_BGR2RGB))
 	window.blit(image, (100, 100))
@@ -84,11 +44,20 @@ while running:
 		if event.type == pygame.QUIT:
 			running = False
 
+	keys_pressed = pygame.key.get_pressed()
+
+	if keys_pressed[pygame.K_SPACE]:
+		images = []
+		waves = [aw.wave(random.randint(0, 360), (800, 600), random.randint(10, 150), random.randint(1, 6), np.array([0.7, 0.3, 0.9])) for _ in range(5)]
+
+
+	clock.tick()
+	print("FPS:", clock.get_fps())
 
 
 video_writer = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 25, (images[0].shape[1], images[0].shape[0]))
 
 for image in images:
-    video_writer.write(image)
+	video_writer.write(image)
 
 video_writer.release()
