@@ -21,7 +21,8 @@ images = []
 x = 0
 
 def fill_waves_list():
-	return [aw.wave(random.randint(0, 360), (800, 600), random.randint(10, 150), random.uniform(0.05, 3.05), np.random.rand((3))) for _ in range(5)]
+	return [aw.wave(random.randint(0, 360), (800, 600), random.randint(10, 80), random.uniform(0.05, 3.05), np.array([0.2, 0.3, 0.3])) for _ in range(8)]
+	# return [aw.wave(random.randint(0, 360), (800, 600), random.randint(10, 350), random.uniform(0.05, 3.05), np.random.rand((3))) for _ in range(6)]
 
 waves = fill_waves_list()
 
@@ -34,13 +35,19 @@ waves = fill_waves_list()
 while running:
 	window.fill((15, 45, 95));
 
-	displacement += 0.02
+	displacement += 0.05
 
 	deriv_arrays = np.zeros((wave_window[0], wave_window[1], 3), dtype=np.uint8)
 	for wave in waves:
 		wave.generate_wave(displacement)
 		deriv_arrays += wave.deriv_array
 
+	deriv_arrays = np.where(np.logical_and(deriv_arrays > 200, deriv_arrays < 255), 75, deriv_arrays)
+	deriv_arrays = np.where(np.logical_and(deriv_arrays > 150, deriv_arrays < 200), 215, deriv_arrays)
+	deriv_arrays = np.where(np.logical_and(deriv_arrays > 100, deriv_arrays < 150), 75, deriv_arrays)
+	deriv_arrays = np.where(np.logical_and(deriv_arrays > 50, deriv_arrays < 100), 0, deriv_arrays)
+	deriv_arrays = np.where(np.logical_and(deriv_arrays > 0, deriv_arrays < 50), 75, deriv_arrays)
+	
 	image = pygame.surfarray.make_surface(deriv_arrays)
 	images.append(cv2.cvtColor(deriv_arrays, cv2.COLOR_BGR2RGB))
 	window.blit(image, (100, 100))
@@ -56,7 +63,7 @@ while running:
 	if (keys_pressed[pygame.K_RIGHT] and unclicked) or x == 5:
 		x = 0
 		unclicked = False
-		# images = []
+		images = []
 		curr_seed_index += 1
 		if curr_seed_index > len(seed) - 1:
 			seed.append(random.randint(1, 10000000))
@@ -66,7 +73,7 @@ while running:
 
 	elif keys_pressed[pygame.K_LEFT] and unclicked:
 		unclicked = False
-		# images = []
+		images = []
 		curr_seed_index -= 1
 		print(curr_seed_index, ":", seed[curr_seed_index])
 		random.seed(seed[curr_seed_index])
