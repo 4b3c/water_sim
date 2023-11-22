@@ -45,6 +45,7 @@ class wave:
 			grey_val = max(0, min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height))
 			# grey_val = max(0, min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height))
 			# grey_val = max(0, min(255, (col_input % 5) * self.height))
+			# grey_val = max(0, min(255, (abs(np.sin(col_input) / np.cos(col_input / 5)**2)) * self.height))
 			self.deriv_array[col, 0:self.size[0]] = np.full((3), grey_val, dtype=np.uint8) * self.color
 
 		# Rotate, crop then transpose from (h, w, d) to (w, h, d)
