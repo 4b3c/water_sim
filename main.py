@@ -48,25 +48,28 @@ waves = [aw.wave(12, wave_window, 90, 3, np.array([0.5, 0.2, 0.5])),
 		]
 
 increasing = True
+borderThing = 2
 
 while running:
 	window.fill((15, 45, 95));
 
+	displacement += 0.07
+
 	if increasing:
-		displacement += 0.07
+		borderThing += 0.09
 	else:
-		displacement -= 0.07
-	if displacement * 50 > 275 or displacement * 50 < 10:
-		increasing = not displacement
+		borderThing -= 0.09
+	if borderThing * 50 > 295 or borderThing * 50 < 50:
+		increasing = not increasing
 
 	deriv_arrays = np.zeros((wave_window[0], wave_window[1], 3), dtype=np.uint8)
 	for wave in waves:
 		wave.generate_wave(displacement)
 		deriv_arrays += wave.deriv_array
 
-	deriv_arrays = replace_pixels(deriv_arrays, int(min(displacement * 50, 255)), True, 0, np.array([70, 190, 195]))
-	deriv_arrays = replace_pixels(deriv_arrays, int(min(displacement * 50, 255)), True, 1, np.array([70, 190, 195]))
-	deriv_arrays = replace_pixels(deriv_arrays, int(min(displacement * 50, 255)), True, 2, np.array([70, 190, 195]))
+	deriv_arrays = replace_pixels(deriv_arrays, int(min(borderThing * 50, 255)), True, 0, np.array([70, 190, 195]))
+	deriv_arrays = replace_pixels(deriv_arrays, int(min(borderThing * 50, 255)), True, 1, np.array([70, 190, 195]))
+	deriv_arrays = replace_pixels(deriv_arrays, int(min(borderThing * 50, 255)), True, 2, np.array([70, 190, 195]))
 
 	# deriv_arrays = replace_pixels(deriv_arrays, 43, False, 0, np.array([190, 30, 40]))
 	# deriv_arrays = replace_pixels(deriv_arrays, 53, False, 1, np.array([190, 30, 40]))
