@@ -42,8 +42,8 @@ class wave:
 		self.deriv_array = np.zeros((self.size[1], self.size[0], 3), dtype=np.uint8)
 		for col in range(self.size[1]):
 			col_input = (col * self.freq) + position
-			grey_val = max(0, min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height))
 			# grey_val = max(0, min(255, ((np.cos(col_input) * np.e**np.sin(col_input)) + 1.5) * self.height))
+			grey_val = max(0, min(255, ((np.cos(col_input) * np.e**np.sin(col_input))) * self.height))
 			# grey_val = max(0, min(255, (col_input % 5) * self.height))
 			# grey_val = max(0, min(255, (abs(np.sin(col_input) / np.cos(col_input / 5)**2)) * self.height))
 			self.deriv_array[col, 0:self.size[0]] = np.full((3), grey_val, dtype=np.uint8) * self.color
